@@ -69,11 +69,19 @@ void AAutonomousCarManager::InitializeManager()
 
 	LearningAgentsInteractorBase = Interactor;
 
-	Policy = ULearningAgentsPolicy::MakePolicy(LearningAgentsManager, LearningAgentsInteractorBase,
-		ULearningAgentsPolicy::StaticClass(), "Learning Agents Policy",
-		EncoderNeuralNetwork, PolicyNeuralNetwork, DecoderNeuralNetwork,
+	Policy = ULearningAgentsPolicy::MakePolicy(
+		LearningAgentsManager,
+		LearningAgentsInteractorBase,
+		ULearningAgentsPolicy::StaticClass(),
+		TEXT("Learning Agents Policy"),
+		/*Encoder=*/ nullptr,
+		/*Policy=*/ nullptr,
+		/*Decoder=*/ nullptr,
 		ReInitialize, ReInitialize, ReInitialize,
-		PolicySettings, RandomSeed);
+		PolicySettings,
+		RandomSeed
+	);
+	
 	if (Policy == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: Failed to make policy object."));
@@ -103,7 +111,8 @@ void AAutonomousCarManager::InitializeManager()
 	// Setup PPO Trainer
 
 	TrainingEnvironmentBase = TrainingEnvironment;
-	FLearningAgentsCommunicator Communicator; // TODO: configure as needed
+	// Create a shared memory communicator to spawn a training process
+	FLearningAgentsCommunicator Communicator = ULearningAgentsCommunicatorLibrary::MakeSharedMemoryTrainingProcess();
 	PPOTrainer = ULearningAgentsPPOTrainer::MakePPOTrainer(
 		LearningAgentsManager, LearningAgentsInteractorBase, TrainingEnvironmentBase, Policy, Critic,
 		Communicator, ULearningAgentsPPOTrainer::StaticClass(), "PPO Trainer");
