@@ -9,7 +9,9 @@
 #include "../ResetableVehiclePawn.h"
 #include "AutonomousCarManagerComponent.h"
 #include "AutonomousCarInteractor.h"
-#include "AutonomousCarTrainer.h"
+#include "AutonomousCarTrainingEnvironment.h"
+#include "LearningAgentsPPOTrainer.h"
+#include "LearningAgentsCommunicator.h"
 
 AAutonomousCarManager::AAutonomousCarManager()
 {
@@ -53,10 +55,8 @@ void AAutonomousCarManager::InitializeAgents()
 
 void AAutonomousCarManager::InitializeManager()
 {
-	// Should neural networks be re-initialized
 	const bool ReInitialize = (RunMode == EManagerModeEnum::ReInitialize);
-	
-	// Make Interactor Instance
+
 	Interactor = Cast<UAutonomousCarInteractor>(ULearningAgentsInteractor::MakeInteractor(
 		LearningAgentsManager, UAutonomousCarInteractor::StaticClass(), "Autonomous Car Interactor"));
 	if (Interactor == nullptr)
@@ -64,14 +64,14 @@ void AAutonomousCarManager::InitializeManager()
 		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: Failed to make interactor object."));
 		return;
 	}
-
 	Interactor->TrackSpline = TrackSpline;
 	Interactor->bManualTransmission = bManualTransmission;
 
-	// Make Policy Instance
-	Policy = ULearningAgentsPolicy::MakePolicy(LearningAgentsManager, Interactor,
+	LearningAgentsInteractorBase = Interactor;
+
+	Policy = ULearningAgentsPolicy::MakePolicy(LearningAgentsManager, LearningAgentsInteractorBase,
 		ULearningAgentsPolicy::StaticClass(), "Learning Agents Policy",
-		EncoderNeuralNetwork, PolicyNeuralNetwork,DecoderNeuralNetwork,
+		EncoderNeuralNetwork, PolicyNeuralNetwork, DecoderNeuralNetwork,
 		ReInitialize, ReInitialize, ReInitialize,
 		PolicySettings, RandomSeed);
 	if (Policy == nullptr)
@@ -80,8 +80,7 @@ void AAutonomousCarManager::InitializeManager()
 		return;
 	}
 
-	// Make Critic Instance
-	Critic = ULearningAgentsCritic::MakeCritic(LearningAgentsManager, Interactor, Policy,
+	Critic = ULearningAgentsCritic::MakeCritic(LearningAgentsManager, LearningAgentsInteractorBase, Policy,
 		ULearningAgentsCritic::StaticClass(), "Learning Agents Critic",
 		CriticNeuralNetwork, ReInitialize, CriticSettings, RandomSeed);
 	if (Critic == nullptr)
@@ -90,19 +89,29 @@ void AAutonomousCarManager::InitializeManager()
 		return;
 	}
 
-	// Make Trainer Instance
-	Trainer = Cast<UAutonomousCarTrainer>(ULearningAgentsTrainer::MakeTrainer(
-		LearningAgentsManager, Interactor, Policy, Critic,
-		UAutonomousCarTrainer::StaticClass(), "Autonomous Car Trainer",
-		TrainerSettings));
-	if (Trainer == nullptr)
+	// Create Training Environment
+	TrainingEnvironment = Cast<UAutonomousCarTrainingEnvironment>(ULearningAgentsTrainingEnvironment::MakeTrainingEnvironment(
+		LearningAgentsManager, UAutonomousCarTrainingEnvironment::StaticClass(), "Autonomous Car Training Environment"));
+	if (TrainingEnvironment == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: Failed to make autonomous car trainer object."));
+		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: Failed to make training environment object."));
 		return;
 	}
+	TrainingEnvironment->TrackSpline = TrackSpline;
+	TrainingEnvironment->bManualTransmission = bManualTransmission;
 
-	Trainer->TrackSpline = TrackSpline;
-	Trainer->bManualTransmission = bManualTransmission;
+	// Setup PPO Trainer
+
+	TrainingEnvironmentBase = TrainingEnvironment;
+	FLearningAgentsCommunicator Communicator; // TODO: configure as needed
+	PPOTrainer = ULearningAgentsPPOTrainer::MakePPOTrainer(
+		LearningAgentsManager, LearningAgentsInteractorBase, TrainingEnvironmentBase, Policy, Critic,
+		Communicator, ULearningAgentsPPOTrainer::StaticClass(), "PPO Trainer");
+	if (PPOTrainer == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: Failed to make PPO trainer object."));
+		return;
+	}
 }
 
 void AAutonomousCarManager::Tick(float DeltaSeconds)
@@ -117,10 +126,10 @@ void AAutonomousCarManager::Tick(float DeltaSeconds)
 	}
 	else
 	{
-		if (Trainer != nullptr)
+		if (PPOTrainer != nullptr)
 		{
-			Trainer->RunTraining(TrainerTrainingSettings, TrainerGameSettings, TrainerPathSettings,
-				true, true);
+			// TODO: Expose PPO training settings as needed
+			PPOTrainer->RunTraining();
 		}
-	}	
+	}
 }

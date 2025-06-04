@@ -8,7 +8,9 @@ public class LearningToDrive54 : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Landscape", "LearningAgents", "ChaosVehicles" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Landscape", "ChaosVehicles",
+			"Learning", "LearningAgents", "LearningTraining", "LearningAgentsTraining"
+        });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

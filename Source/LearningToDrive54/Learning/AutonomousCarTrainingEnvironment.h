@@ -3,43 +3,42 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "LearningAgentsTrainer.h"
-#include "AutonomousCarTrainer.generated.h"
+#include "LearningAgentsTrainingEnvironment.h"
+#include "AutonomousCarTrainingEnvironment.generated.h"
 
 class USplineComponent;
 
 /**
- * 
+ * Training environment for autonomous car RL
  */
 UCLASS()
-class LEARNINGTODRIVE54_API UAutonomousCarTrainer : public ULearningAgentsTrainer
+class LEARNINGTODRIVE54_API UAutonomousCarTrainingEnvironment : public ULearningAgentsTrainingEnvironment
 {
 	GENERATED_BODY()
 
+public:
+	UAutonomousCarTrainingEnvironment();
+
+	// Reward/completion/reset logic
 	virtual void GatherAgentReward_Implementation(float& OutReward, const int32 AgentId) override;
-
 	virtual void GatherAgentCompletion_Implementation(ELearningAgentsCompletion& OutCompletion, const int32 AgentId) override;
-
 	virtual void ResetAgentEpisode_Implementation(const int32 AgentId) override;
 
-public:
-	UAutonomousCarTrainer();
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Track")
-		USplineComponent* TrackSpline;
+	USplineComponent* TrackSpline;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rewards")
-		float OffTrackThreshold;
+	float OffTrackThreshold;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rewards")
-		int CollisionThreshold;
+	int CollisionThreshold;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stick Shift")
-		bool bManualTransmission;
+	bool bManualTransmission;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stick Shift")
-		float UpShiftAt;
+	float UpShiftAt;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stick Shift")
-		float DownShiftAt;
+	float DownShiftAt;
 };
