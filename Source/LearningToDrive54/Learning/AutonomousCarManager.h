@@ -99,4 +99,12 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Neural Networks")
 	ULearningAgentsNeuralNetwork* CriticNeuralNetwork;
+
+	UPROPERTY(EditAnywhere, Category = "Learning Settings")
+	FLearningAgentsPPOTrainingSettings TrainingSettings;
+
+	UPROPERTY(EditAnywhere, Category = "Learning Settings")
+	FLearningAgentsTrainingGameSettings TrainingGameSettings;
+
+
 };

@@ -150,7 +150,8 @@ void AAutonomousCarManager::Tick(float DeltaSeconds)
 		if (PPOTrainer != nullptr)
 		{
 			UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running PPO training step."));
-			PPOTrainer->RunTraining();
+			PPOTrainer->RunTraining(
+				TrainingSettings, TrainingGameSettings, true, true);
 		}
 	}
 
