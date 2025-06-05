@@ -14,9 +14,6 @@
 #include "LearningAgentsCommunicator.h"
 
 AAutonomousCarManager::AAutonomousCarManager()
-	: PolicyNeuralNetwork(nullptr)
-	, CriticNeuralNetwork(nullptr)
-	, DecoderNeuralNetwork(nullptr)
 {
 	LearningAgentsManager = CreateDefaultSubobject<UAutonomousCarManagerComponent>("Learning Agents Manager");
 
@@ -88,9 +85,9 @@ void AAutonomousCarManager::InitializeManager()
 		LearningAgentsInteractorBase,
 		ULearningAgentsPolicy::StaticClass(),
 		TEXT("Learning Agents Policy"),
-		/*Encoder=*/ nullptr,
-		/*Policy=*/ nullptr,
-		/*Decoder=*/ nullptr,
+		EncoderNeuralNetwork,
+		PolicyNeuralNetwork,
+		DecoderNeuralNetwork,
 		ReInitialize, ReInitialize, ReInitialize,
 		PolicySettings,
 		RandomSeed
@@ -140,7 +137,7 @@ void AAutonomousCarManager::InitializeManager()
 void AAutonomousCarManager::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	/*if (RunMode == EManagerModeEnum::InferenceMode)
+	if (RunMode == EManagerModeEnum::InferenceMode)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running inference mode."));
 		if (Policy != nullptr)
@@ -155,11 +152,11 @@ void AAutonomousCarManager::Tick(float DeltaSeconds)
 			UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running PPO training step."));
 			PPOTrainer->RunTraining();
 		}
-	}*/
-
-	if (PPOTrainer != nullptr)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running PPO training step."));
-		PPOTrainer->RunTraining();
 	}
+
+	// if (PPOTrainer != nullptr)
+	// {
+	// 	UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running PPO training step."));
+	// 	PPOTrainer->RunTraining();
+	// }
 }
