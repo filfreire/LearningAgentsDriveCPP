@@ -14,8 +14,13 @@
 #include "LearningAgentsCommunicator.h"
 
 AAutonomousCarManager::AAutonomousCarManager()
+	: PolicyNeuralNetwork(nullptr)
+	, CriticNeuralNetwork(nullptr)
+	, DecoderNeuralNetwork(nullptr)
 {
 	LearningAgentsManager = CreateDefaultSubobject<UAutonomousCarManagerComponent>("Learning Agents Manager");
+
+	// TODO: Initialize neural network assets
 }
 
 void AAutonomousCarManager::BeginPlay()
@@ -56,6 +61,8 @@ void AAutonomousCarManager::InitializeAgents()
 void AAutonomousCarManager::InitializeManager()
 {
 	const bool ReInitialize = (RunMode == EManagerModeEnum::ReInitialize);
+	// const bool InferenceMode = (RunMode == EManagerModeEnum::InferenceMode);
+	// const bool ContinueTraining = (RunMode == EManagerModeEnum::ContinueTraining);
 
 	Interactor = Cast<UAutonomousCarInteractor>(ULearningAgentsInteractor::MakeInteractor(
 		LearningAgentsManager, UAutonomousCarInteractor::StaticClass(), "Autonomous Car Interactor"));
@@ -68,6 +75,13 @@ void AAutonomousCarManager::InitializeManager()
 	Interactor->bManualTransmission = bManualTransmission;
 
 	LearningAgentsInteractorBase = Interactor;
+
+	// warn if neural networks are not set
+	if (EncoderNeuralNetwork == nullptr || PolicyNeuralNetwork == nullptr || DecoderNeuralNetwork == nullptr || CriticNeuralNetwork == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: One or more neural networks are not set."));
+		return;
+	}
 
 	Policy = ULearningAgentsPolicy::MakePolicy(
 		LearningAgentsManager,
@@ -126,8 +140,9 @@ void AAutonomousCarManager::InitializeManager()
 void AAutonomousCarManager::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if (RunMode == EManagerModeEnum::InferenceMode)
+	/*if (RunMode == EManagerModeEnum::InferenceMode)
 	{
+		UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running inference mode."));
 		if (Policy != nullptr)
 		{
 			Policy->RunInference();
@@ -137,8 +152,14 @@ void AAutonomousCarManager::Tick(float DeltaSeconds)
 	{
 		if (PPOTrainer != nullptr)
 		{
-			// TODO: Expose PPO training settings as needed
+			UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running PPO training step."));
 			PPOTrainer->RunTraining();
 		}
+	}*/
+
+	if (PPOTrainer != nullptr)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running PPO training step."));
+		PPOTrainer->RunTraining();
 	}
 }
