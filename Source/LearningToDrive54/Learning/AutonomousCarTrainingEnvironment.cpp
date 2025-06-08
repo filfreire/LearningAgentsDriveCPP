@@ -1,37 +1,33 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
-#include "AutonomousCarTrainer.h"
-
+#include "AutonomousCarTrainingEnvironment.h"
 #include "LearningAgentsManager.h"
 #include "LearningAgentsRewards.h"
-
 #include "Components/SplineComponent.h"
 #include "../ResetableVehiclePawn.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
 
-UAutonomousCarTrainer::UAutonomousCarTrainer() {
+UAutonomousCarTrainingEnvironment::UAutonomousCarTrainingEnvironment() {
 	TrackSpline = nullptr;
 	OffTrackThreshold = 1200.0f;
 	CollisionThreshold = 5;
-	
 	bManualTransmission = false;
 	UpShiftAt = 3000.0f;
 	DownShiftAt = 1500.0f;
 }
 
-void UAutonomousCarTrainer::GatherAgentReward_Implementation(float& OutReward, const int32 AgentId)
+void UAutonomousCarTrainingEnvironment::GatherAgentReward_Implementation(float& OutReward, const int32 AgentId)
 {
 	// Get reference to agent and it's movement component
 	AResetableVehiclePawn* Agent = Cast<AResetableVehiclePawn>(Manager->GetAgent(AgentId, AWheeledVehiclePawn::StaticClass()));
 	if (Agent == nullptr) {
-		UE_LOG(LogTemp, Error, TEXT("Trainer (26): Casting of agent failed."));
+		UE_LOG(LogTemp, Error, TEXT("TrainingEnvironment (22): Casting of agent failed."));
 		return;
 	}
 
 	const UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(Agent->GetVehicleMovementComponent());
 	if (VehicleMovement == nullptr) {
-		UE_LOG(LogTemp, Error, TEXT("Trainer (32): Failed to Retrieve Vehicle Movement Component."))
+		UE_LOG(LogTemp, Error, TEXT("TrainingEnvironment (28): Failed to Retrieve Vehicle Movement Component."))
 		return;
 	}
 
@@ -46,7 +42,7 @@ void UAutonomousCarTrainer::GatherAgentReward_Implementation(float& OutReward, c
 
 	// Penalize more than 2 collisions with other vehicles (per training cycle)
 	const float CollisionPenalty = ULearningAgentsRewards::MakeReward(Agent->GetCollisionCount(), -15.0f);
-	
+
 	// Reward keeping RPMs in the sweet spot
 	float GearshiftReward = 0.0f;
 	if (bManualTransmission) {
@@ -59,15 +55,14 @@ void UAutonomousCarTrainer::GatherAgentReward_Implementation(float& OutReward, c
 	OutReward = (SpeedReward + OffTrackPenalty + CollisionPenalty + GearshiftReward);
 }
 
-void UAutonomousCarTrainer::GatherAgentCompletion_Implementation(ELearningAgentsCompletion& OutCompletion,
-	const int32 AgentId) {
+void UAutonomousCarTrainingEnvironment::GatherAgentCompletion_Implementation(ELearningAgentsCompletion& OutCompletion, const int32 AgentId) {
 	// Get reference to agent
 	const AResetableVehiclePawn* Agent = Cast<AResetableVehiclePawn>(Manager->GetAgent(AgentId, AResetableVehiclePawn::StaticClass()));
 	if (Agent == nullptr) {
-		UE_LOG(LogTemp, Error, TEXT("Trainer (62): Casting of agent failed."));
+		UE_LOG(LogTemp, Error, TEXT("TrainingEnvironment (60): Casting of agent failed."));
 		return;
 	}
-	
+
 	// Terminate if too many collisions
 	const ELearningAgentsCompletion CollisionCompletion = ULearningAgentsCompletions::MakeCompletionOnCondition(
 		Agent->GetCollisionCount() > CollisionThreshold);
@@ -76,7 +71,7 @@ void UAutonomousCarTrainer::GatherAgentCompletion_Implementation(ELearningAgents
 		OutCompletion = ELearningAgentsCompletion::Termination;
 		return;
 	}
-	
+
 	// Terminate if off track too far
 	const FVector TrackLocation = TrackSpline->FindLocationClosestToWorldLocation(Agent->GetActorLocation(), ESplineCoordinateSpace::World);
 	const ELearningAgentsCompletion TrackCompletion = ULearningAgentsCompletions::MakeCompletionOnLocationDifferenceAboveThreshold(
@@ -87,11 +82,11 @@ void UAutonomousCarTrainer::GatherAgentCompletion_Implementation(ELearningAgents
 	}
 }
 
-void UAutonomousCarTrainer::ResetAgentEpisode_Implementation(const int32 AgentId) {
+void UAutonomousCarTrainingEnvironment::ResetAgentEpisode_Implementation(const int32 AgentId) {
 	// Get reference to agent
 	AResetableVehiclePawn* Agent = Cast<AResetableVehiclePawn>(Manager->GetAgent(AgentId, AResetableVehiclePawn::StaticClass()));
 	if (Agent == nullptr) {
-		UE_LOG(LogTemp, Error, TEXT("Trainer (76): Casting of agent failed."));
+		UE_LOG(LogTemp, Error, TEXT("TrainingEnvironment (87): Casting of agent failed."));
 		return;
 	}
 

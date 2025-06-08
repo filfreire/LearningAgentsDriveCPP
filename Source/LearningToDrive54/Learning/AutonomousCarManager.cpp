@@ -9,7 +9,9 @@
 #include "../ResetableVehiclePawn.h"
 #include "AutonomousCarManagerComponent.h"
 #include "AutonomousCarInteractor.h"
-#include "AutonomousCarTrainer.h"
+#include "AutonomousCarTrainingEnvironment.h"
+#include "LearningAgentsPPOTrainer.h"
+#include "LearningAgentsCommunicator.h"
 
 AAutonomousCarManager::AAutonomousCarManager()
 {
@@ -55,7 +57,7 @@ void AAutonomousCarManager::InitializeManager()
 {
 	// Should neural networks be re-initialized
 	const bool ReInitialize = (RunMode == EManagerModeEnum::ReInitialize);
-	
+
 	// Make Interactor Instance
 	Interactor = Cast<UAutonomousCarInteractor>(ULearningAgentsInteractor::MakeInteractor(
 		LearningAgentsManager, UAutonomousCarInteractor::StaticClass(), "Autonomous Car Interactor"));
@@ -64,16 +66,32 @@ void AAutonomousCarManager::InitializeManager()
 		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: Failed to make interactor object."));
 		return;
 	}
-
 	Interactor->TrackSpline = TrackSpline;
 	Interactor->bManualTransmission = bManualTransmission;
 
+	LearningAgentsInteractorBase = Interactor;
+
+	// Warn if neural networks are not set
+	if (EncoderNeuralNetwork == nullptr || PolicyNeuralNetwork == nullptr || DecoderNeuralNetwork == nullptr || CriticNeuralNetwork == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: One or more neural networks are not set."));
+		return;
+	}
+
 	// Make Policy Instance
-	Policy = ULearningAgentsPolicy::MakePolicy(LearningAgentsManager, Interactor,
-		ULearningAgentsPolicy::StaticClass(), "Learning Agents Policy",
-		EncoderNeuralNetwork, PolicyNeuralNetwork,DecoderNeuralNetwork,
+	Policy = ULearningAgentsPolicy::MakePolicy(
+		LearningAgentsManager,
+		LearningAgentsInteractorBase,
+		ULearningAgentsPolicy::StaticClass(),
+		TEXT("Learning Agents Policy"),
+		EncoderNeuralNetwork,
+		PolicyNeuralNetwork,
+		DecoderNeuralNetwork,
 		ReInitialize, ReInitialize, ReInitialize,
-		PolicySettings, RandomSeed);
+		PolicySettings,
+		RandomSeed
+	);
+	
 	if (Policy == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: Failed to make policy object."));
@@ -81,7 +99,7 @@ void AAutonomousCarManager::InitializeManager()
 	}
 
 	// Make Critic Instance
-	Critic = ULearningAgentsCritic::MakeCritic(LearningAgentsManager, Interactor, Policy,
+	Critic = ULearningAgentsCritic::MakeCritic(LearningAgentsManager, LearningAgentsInteractorBase, Policy,
 		ULearningAgentsCritic::StaticClass(), "Learning Agents Critic",
 		CriticNeuralNetwork, ReInitialize, CriticSettings, RandomSeed);
 	if (Critic == nullptr)
@@ -90,19 +108,33 @@ void AAutonomousCarManager::InitializeManager()
 		return;
 	}
 
-	// Make Trainer Instance
-	Trainer = Cast<UAutonomousCarTrainer>(ULearningAgentsTrainer::MakeTrainer(
-		LearningAgentsManager, Interactor, Policy, Critic,
-		UAutonomousCarTrainer::StaticClass(), "Autonomous Car Trainer",
-		TrainerSettings));
-	if (Trainer == nullptr)
+	// Make Training Environment instance
+	TrainingEnvironment = Cast<UAutonomousCarTrainingEnvironment>(ULearningAgentsTrainingEnvironment::MakeTrainingEnvironment(
+		LearningAgentsManager, UAutonomousCarTrainingEnvironment::StaticClass(), "Autonomous Car Training Environment"));
+	if (TrainingEnvironment == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: Failed to make autonomous car trainer object."));
+		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: Failed to make training environment object."));
 		return;
 	}
+	TrainingEnvironment->TrackSpline = TrackSpline;
+	TrainingEnvironment->bManualTransmission = bManualTransmission;
 
-	Trainer->TrackSpline = TrackSpline;
-	Trainer->bManualTransmission = bManualTransmission;
+	TrainingEnvironmentBase = TrainingEnvironment;
+
+	// Create a shared memory communicator to spawn a training process
+	FLearningAgentsCommunicator Communicator = ULearningAgentsCommunicatorLibrary::MakeSharedMemoryTrainingProcess(
+		TrainerProcessSettings, SharedMemorySettings
+	);
+
+	// Make PPO Trainer Instance
+	PPOTrainer = ULearningAgentsPPOTrainer::MakePPOTrainer(
+		LearningAgentsManager, LearningAgentsInteractorBase, TrainingEnvironmentBase, Policy, Critic,
+		Communicator, ULearningAgentsPPOTrainer::StaticClass(), "PPO Trainer", TrainerSettings);
+	if (PPOTrainer == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: Failed to make PPO trainer object."));
+		return;
+	}
 }
 
 void AAutonomousCarManager::Tick(float DeltaSeconds)
@@ -110,6 +142,7 @@ void AAutonomousCarManager::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	if (RunMode == EManagerModeEnum::InferenceMode)
 	{
+		UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running inference mode."));
 		if (Policy != nullptr)
 		{
 			Policy->RunInference();
@@ -117,10 +150,11 @@ void AAutonomousCarManager::Tick(float DeltaSeconds)
 	}
 	else
 	{
-		if (Trainer != nullptr)
+		if (PPOTrainer != nullptr)
 		{
-			Trainer->RunTraining(TrainerTrainingSettings, TrainerGameSettings, TrainerPathSettings,
-				true, true);
+			UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running PPO training."));
+			PPOTrainer->RunTraining(
+				TrainingSettings, TrainingGameSettings, true, true);
 		}
-	}	
+	}
 }

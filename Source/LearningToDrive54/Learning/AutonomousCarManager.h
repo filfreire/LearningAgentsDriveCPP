@@ -9,12 +9,17 @@
 #include "LearningAgentsCritic.h"
 #include "LearningAgentsTrainer.h"
 #include "ManagerModeEnum.h"
+#include "AutonomousCarTrainingEnvironment.h"
+#include "LearningAgentsPPOTrainer.h"
+#include "LearningAgentsManager.h" // Include manager base class
+#include "LearningAgentsCommunicator.h"
+#include "LearningAgentsTrainer.h"
+
 
 #include "AutonomousCarManager.generated.h"
 
 class UAutonomousCarManagerComponent;
 class UAutonomousCarInteractor;
-class UAutonomousCarTrainer;
 class ULearningAgentsNeuralNetwork;
 
 /**
@@ -30,7 +35,11 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	UAutonomousCarManagerComponent* LearningAgentsManager;
+	ULearningAgentsManager* LearningAgentsManager; // Base manager type for Make* functions
+
+	// Base pointers for learning objects (for Make* methods)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
+	ULearningAgentsInteractor* LearningAgentsInteractorBase;
 
 	// Objects managed by the learning manager
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
@@ -43,7 +52,22 @@ protected:
 	ULearningAgentsCritic* Critic;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
-	UAutonomousCarTrainer* Trainer;
+	ULearningAgentsTrainingEnvironment* TrainingEnvironmentBase;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
+	UAutonomousCarTrainingEnvironment* TrainingEnvironment;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
+	ULearningAgentsPPOTrainer* PPOTrainer;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
+	FLearningAgentsTrainerProcessSettings TrainerProcessSettings;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
+	FLearningAgentsSharedMemoryCommunicatorSettings SharedMemorySettings;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
+	FLearningAgentsPPOTrainerSettings TrainerSettings;
 
 	// Respond to spline ready event
 	UFUNCTION()
@@ -68,24 +92,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Manager Settings")
 	int RandomSeed;
 
-	// Settings passed to the learning objects
 	UPROPERTY(EditAnywhere, Category = "Learning Settings")
 	FLearningAgentsPolicySettings PolicySettings;
 
 	UPROPERTY(EditAnywhere, Category = "Learning Settings")
 	FLearningAgentsCriticSettings CriticSettings;
-
-	UPROPERTY(EditAnywhere, Category = "Learning Settings")
-	FLearningAgentsTrainerSettings TrainerSettings;
-
-	UPROPERTY(EditAnywhere, Category = "Learning Settings")
-	FLearningAgentsTrainerTrainingSettings TrainerTrainingSettings;
-
-	UPROPERTY(EditAnywhere, Category = "Learning Settings")
-	FLearningAgentsTrainerGameSettings TrainerGameSettings;
-
-	UPROPERTY(EditAnywhere, Category = "Learning Settings")
-	FLearningAgentsTrainerPathSettings TrainerPathSettings;
 
 	// References to the nural network data assets
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Neural Networks")
@@ -99,4 +110,12 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Neural Networks")
 	ULearningAgentsNeuralNetwork* CriticNeuralNetwork;
+
+	UPROPERTY(EditAnywhere, Category = "Learning Settings")
+	FLearningAgentsPPOTrainingSettings TrainingSettings;
+
+	UPROPERTY(EditAnywhere, Category = "Learning Settings")
+	FLearningAgentsTrainingGameSettings TrainingGameSettings;
+
+
 };

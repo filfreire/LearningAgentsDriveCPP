@@ -39,7 +39,7 @@ void UAutonomousCarInteractor::SpecifyAgentObservation_Implementation(
 	// Define one track observation
 	TMap<FName, FLearningAgentsObservationSchemaElement> TrackObservation;
 	TrackObservation.Add("Location", ULearningAgentsObservations::SpecifyLocationAlongSplineObservation(
-		InObservationSchema, "TrackLocationObservation"));
+		InObservationSchema, 10000.0f, "TrackLocationObservation"));
 	TrackObservation.Add("Direction", ULearningAgentsObservations::SpecifyDirectionAlongSplineObservation(
 		InObservationSchema, "TrackDirectionObservation"));
 
@@ -52,7 +52,7 @@ void UAutonomousCarInteractor::SpecifyAgentObservation_Implementation(
 	// Define one agent observation
 	TMap<FName, FLearningAgentsObservationSchemaElement> AgentObservation;
 	AgentObservation.Add("Location", ULearningAgentsObservations::SpecifyLocationObservation(
-		InObservationSchema, "AgentLocationObservation"));
+		InObservationSchema, 10000.0f, "AgentLocationObservation"));
 	AgentObservation.Add("Direction", ULearningAgentsObservations::SpecifyDirectionObservation(
 		InObservationSchema, "AgentDirectionObservation"));
 
@@ -64,9 +64,9 @@ void UAutonomousCarInteractor::SpecifyAgentObservation_Implementation(
 
 	// Define observation of own speed and RPMs (if manual transmission)
 	TMap<FName, FLearningAgentsObservationSchemaElement> SelfObservation;
-	SelfObservation.Add("Speed", ULearningAgentsObservations::SpecifyVelocityObservation(InObservationSchema));
+	SelfObservation.Add("Speed", ULearningAgentsObservations::SpecifyVelocityObservation(InObservationSchema, 200.0f));
 	if (bManualTransmission) {
-		SelfObservation.Add("RPM", ULearningAgentsObservations::SpecifyFloatObservation(InObservationSchema));
+		SelfObservation.Add("RPM", ULearningAgentsObservations::SpecifyFloatObservation(InObservationSchema, 200.0f));
 	}
 
 	const auto SelfObservations =
@@ -104,8 +104,8 @@ void UAutonomousCarInteractor::GatherAgentObservation_Implementation(
 		for (const float Offset : TrackDistanceSamples) {
 			// Compute location and distance along track closest to agent
 			auto LocationObservation = ULearningAgentsObservations::MakeLocationAlongSplineObservation(
-				InObservationObject, TrackSpline, Distance + Offset, Agent->GetActorTransform(),10000.0f,
-				"TrackLocationObservation", Agent->IsPlayerControlled(),nullptr, AgentId,
+				InObservationObject, TrackSpline, Distance + Offset, Agent->GetActorTransform(),
+				"TrackLocationObservation", Agent->IsPlayerControlled(), nullptr, AgentId,
 				TrackSpline->GetLocationAtDistanceAlongSpline(Distance + Offset, ESplineCoordinateSpace::World));
 
 			auto DirectionObservation = ULearningAgentsObservations::MakeDirectionAlongSplineObservation(
@@ -148,8 +148,7 @@ void UAutonomousCarInteractor::GatherAgentObservation_Implementation(
 	for (int i = 0; i<OtherAgentCount; i++) {
 		// Compute location and distance along track closest to agent
 		auto LocationObservation = ULearningAgentsObservations::MakeLocationObservation(
-			InObservationObject, Measurements[i].Value->GetActorLocation(), Agent->GetActorTransform(),
-			10000.0f, "AgentLocationObservation");
+			InObservationObject, Measurements[i].Value->GetActorLocation(), Agent->GetActorTransform(), "AgentLocationObservation");
 
 		auto DirectionObservation = ULearningAgentsObservations::MakeDirectionObservation(
 			InObservationObject, Measurements[i].Value->GetVelocity(), Agent->GetActorTransform(),
@@ -170,7 +169,7 @@ void UAutonomousCarInteractor::GatherAgentObservation_Implementation(
 	// Make observation of own speed and RPMs (if manual transmission)
 	TMap<FName, FLearningAgentsObservationObjectElement> SelfObservations;
 	SelfObservations.Add("Speed", ULearningAgentsObservations::MakeVelocityObservation(
-		InObservationObject, Agent->GetVelocity(), Agent->GetActorTransform(), 200.0f));
+		InObservationObject, Agent->GetVelocity(), Agent->GetActorTransform()));
 	if (bManualTransmission) {
 		SelfObservations.Add("RPM", ULearningAgentsObservations::MakeFloatObservation(
 			InObservationObject, VehicleMovement->GetEngineRotationSpeed()));
@@ -194,8 +193,8 @@ void UAutonomousCarInteractor::SpecifyAgentAction_Implementation(
 
 	// Build Map of actions
 	TMap<FName, FLearningAgentsActionSchemaElement> ActionsMap;
-	ActionsMap.Add("Steering", ULearningAgentsActions::SpecifyFloatAction(InActionSchema, "Steering"));
-	ActionsMap.Add("ThrottleBrake", ULearningAgentsActions::SpecifyFloatAction(InActionSchema, "ThrottleBrake"));
+	ActionsMap.Add("Steering", ULearningAgentsActions::SpecifyFloatAction(InActionSchema, 1.0f, "Steering"));
+	ActionsMap.Add("ThrottleBrake", ULearningAgentsActions::SpecifyFloatAction(InActionSchema, 1.0f, "ThrottleBrake"));
 
 	// Optionally include shifting for manual transmission
 	if (bManualTransmission) {
@@ -244,8 +243,8 @@ void UAutonomousCarInteractor::PerformAgentAction_Implementation(const ULearning
 
 	// Retrieve action values
 	float SteeringValue = 0.0f, ThrottleBrakeValue = 0.0f;
-	if (!ULearningAgentsActions::GetFloatAction(SteeringValue, InActionObject, *SteeringAction, 1.0f, "Steering") ||
-		!ULearningAgentsActions::GetFloatAction(ThrottleBrakeValue, InActionObject, *ThrottleBrakeAction, 1.0f, "ThrottleBrake")) {
+	if (!ULearningAgentsActions::GetFloatAction(SteeringValue, InActionObject, *SteeringAction, "Steering") ||
+		!ULearningAgentsActions::GetFloatAction(ThrottleBrakeValue, InActionObject, *ThrottleBrakeAction, "ThrottleBrake")) {
 		UE_LOG(LogTemp, Error, TEXT("Failed to retrieve steering or Thrttle Action value"));
 		return;
 	}
