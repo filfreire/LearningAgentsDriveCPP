@@ -19,9 +19,9 @@ class LEARNINGTODRIVE54_API UAutonomousCarTrainingEnvironment : public ULearning
 public:
 	UAutonomousCarTrainingEnvironment();
 
-	// Reward/completion/reset logic
 	virtual void GatherAgentReward_Implementation(float& OutReward, const int32 AgentId) override;
 	virtual void GatherAgentCompletion_Implementation(ELearningAgentsCompletion& OutCompletion, const int32 AgentId) override;
+
 	virtual void ResetAgentEpisode_Implementation(const int32 AgentId) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Track")
