@@ -119,14 +119,16 @@ void AAutonomousCarManager::InitializeManager()
 	TrainingEnvironment->TrackSpline = TrackSpline;
 	TrainingEnvironment->bManualTransmission = bManualTransmission;
 
-	// Setup PPO Trainer
-
 	TrainingEnvironmentBase = TrainingEnvironment;
+
 	// Create a shared memory communicator to spawn a training process
-	FLearningAgentsCommunicator Communicator = ULearningAgentsCommunicatorLibrary::MakeSharedMemoryTrainingProcess();
+	FLearningAgentsCommunicator Communicator = ULearningAgentsCommunicatorLibrary::MakeSharedMemoryTrainingProcess(
+		TrainerProcessSettings, SharedMemorySettings
+	);
+
 	PPOTrainer = ULearningAgentsPPOTrainer::MakePPOTrainer(
 		LearningAgentsManager, LearningAgentsInteractorBase, TrainingEnvironmentBase, Policy, Critic,
-		Communicator, ULearningAgentsPPOTrainer::StaticClass(), "PPO Trainer");
+		Communicator, ULearningAgentsPPOTrainer::StaticClass(), "PPO Trainer", TrainerSettings);
 	if (PPOTrainer == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: Failed to make PPO trainer object."));
@@ -154,10 +156,4 @@ void AAutonomousCarManager::Tick(float DeltaSeconds)
 				TrainingSettings, TrainingGameSettings, true, true);
 		}
 	}
-
-	// if (PPOTrainer != nullptr)
-	// {
-	// 	UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running PPO training step."));
-	// 	PPOTrainer->RunTraining();
-	// }
 }

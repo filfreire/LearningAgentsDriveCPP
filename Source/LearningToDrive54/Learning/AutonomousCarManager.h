@@ -12,6 +12,9 @@
 #include "AutonomousCarTrainingEnvironment.h"
 #include "LearningAgentsPPOTrainer.h"
 #include "LearningAgentsManager.h" // Include manager base class
+#include "LearningAgentsCommunicator.h"
+#include "LearningAgentsTrainer.h"
+
 
 #include "AutonomousCarManager.generated.h"
 
@@ -56,6 +59,15 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
 	ULearningAgentsPPOTrainer* PPOTrainer;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
+	FLearningAgentsTrainerProcessSettings TrainerProcessSettings;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
+	FLearningAgentsSharedMemoryCommunicatorSettings SharedMemorySettings;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Learning Objects")
+	FLearningAgentsPPOTrainerSettings TrainerSettings;
 
 	// Respond to spline ready event
 	UFUNCTION()

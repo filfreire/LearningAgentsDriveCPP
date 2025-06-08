@@ -18,37 +18,52 @@ UAutonomousCarTrainingEnvironment::UAutonomousCarTrainingEnvironment() {
 
 void UAutonomousCarTrainingEnvironment::GatherAgentReward_Implementation(float& OutReward, const int32 AgentId)
 {
+	// Get reference to agent and it's movement component
 	AResetableVehiclePawn* Agent = Cast<AResetableVehiclePawn>(Manager->GetAgent(AgentId, AWheeledVehiclePawn::StaticClass()));
 	if (Agent == nullptr) {
 		UE_LOG(LogTemp, Error, TEXT("TrainingEnv: Casting of agent failed."));
 		return;
 	}
+
 	const UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(Agent->GetVehicleMovementComponent());
 	if (VehicleMovement == nullptr) {
 		UE_LOG(LogTemp, Error, TEXT("TrainingEnv: Failed to Retrieve Vehicle Movement Component."))
 		return;
 	}
+
+	// Reward going fast
 	const float SpeedReward = ULearningAgentsRewards::MakeRewardFromVelocityAlongSpline(
 		TrackSpline, Agent->GetActorLocation(), Agent->GetVelocity(), 1000.0f);
+
+	// Penalize going off track
 	const FVector TrackLocation = TrackSpline->FindLocationClosestToWorldLocation(Agent->GetActorLocation(), ESplineCoordinateSpace::World);
 	const float OffTrackPenalty = ULearningAgentsRewards::MakeRewardOnLocationDifferenceAboveThreshold(
 		Agent->GetActorLocation(), TrackLocation, OffTrackThreshold, -10.0f);
+
+	// Penalize more than 2 collisions with other vehicles (per training cycle)
 	const float CollisionPenalty = ULearningAgentsRewards::MakeReward(Agent->GetCollisionCount(), -15.0f);
+
+	// Reward keeping RPMs in the sweet spot
 	float GearshiftReward = 0.0f;
 	if (bManualTransmission) {
 		const int TargetGear = VehicleMovement->GetTargetGear();
 		const float EngineRPMs = VehicleMovement->GetEngineRotationSpeed();
 		GearshiftReward = ULearningAgentsRewards::MakeRewardOnCondition(EngineRPMs > DownShiftAt && EngineRPMs < UpShiftAt, TargetGear * 1.5f);
 	}
+
+	// Sum reward and assign to outward bound float
 	OutReward = (SpeedReward + OffTrackPenalty + CollisionPenalty + GearshiftReward);
 }
 
 void UAutonomousCarTrainingEnvironment::GatherAgentCompletion_Implementation(ELearningAgentsCompletion& OutCompletion, const int32 AgentId) {
+	// Get reference to agent
 	const AResetableVehiclePawn* Agent = Cast<AResetableVehiclePawn>(Manager->GetAgent(AgentId, AResetableVehiclePawn::StaticClass()));
 	if (Agent == nullptr) {
 		UE_LOG(LogTemp, Error, TEXT("TrainingEnv: Casting of agent failed."));
 		return;
 	}
+
+	// Terminate if too many collisions
 	const ELearningAgentsCompletion CollisionCompletion = ULearningAgentsCompletions::MakeCompletionOnCondition(
 		Agent->GetCollisionCount() > CollisionThreshold);
 	if (CollisionCompletion == ELearningAgentsCompletion::Termination)
@@ -56,6 +71,8 @@ void UAutonomousCarTrainingEnvironment::GatherAgentCompletion_Implementation(ELe
 		OutCompletion = ELearningAgentsCompletion::Termination;
 		return;
 	}
+
+	// Terminate if off track too far
 	const FVector TrackLocation = TrackSpline->FindLocationClosestToWorldLocation(Agent->GetActorLocation(), ESplineCoordinateSpace::World);
 	const ELearningAgentsCompletion TrackCompletion = ULearningAgentsCompletions::MakeCompletionOnLocationDifferenceAboveThreshold(
 		Agent->GetActorLocation(), TrackLocation, OffTrackThreshold);
@@ -66,19 +83,26 @@ void UAutonomousCarTrainingEnvironment::GatherAgentCompletion_Implementation(ELe
 }
 
 void UAutonomousCarTrainingEnvironment::ResetAgentEpisode_Implementation(const int32 AgentId) {
+	// Get reference to agent
 	AResetableVehiclePawn* Agent = Cast<AResetableVehiclePawn>(Manager->GetAgent(AgentId, AResetableVehiclePawn::StaticClass()));
 	if (Agent == nullptr) {
 		UE_LOG(LogTemp, Error, TEXT("TrainingEnv: Casting of agent failed."));
 		return;
 	}
+
+	// Get all agents
 	TArray<UObject*> AllObjects;
 	TArray<int32> AllIds;
 	Manager->GetAllAgents(AllObjects, AllIds, AResetableVehiclePawn::StaticClass());
+
+	// Cast to array of actors
 	TArray<AActor*> AllAgents;
 	AllAgents.Reserve(AllObjects.Num());
 	for (UObject* Other : AllObjects) {
 		AllAgents.Add(StaticCast<AActor*>(Other));
 	}
+
+	// Reset to random point on track
 	Agent->ResetCollisionCount();
 	Agent->ResetToRandomPointOnSpline(TrackSpline, AllAgents);
 }

@@ -39,7 +39,7 @@ void UAutonomousCarInteractor::SpecifyAgentObservation_Implementation(
 	// Define one track observation
 	TMap<FName, FLearningAgentsObservationSchemaElement> TrackObservation;
 	TrackObservation.Add("Location", ULearningAgentsObservations::SpecifyLocationAlongSplineObservation(
-		InObservationSchema, 1.0f, "TrackLocationObservation"));
+		InObservationSchema, 10000.0f, "TrackLocationObservation"));
 	TrackObservation.Add("Direction", ULearningAgentsObservations::SpecifyDirectionAlongSplineObservation(
 		InObservationSchema, "TrackDirectionObservation"));
 
@@ -52,7 +52,7 @@ void UAutonomousCarInteractor::SpecifyAgentObservation_Implementation(
 	// Define one agent observation
 	TMap<FName, FLearningAgentsObservationSchemaElement> AgentObservation;
 	AgentObservation.Add("Location", ULearningAgentsObservations::SpecifyLocationObservation(
-		InObservationSchema, 1.0f, "AgentLocationObservation"));
+		InObservationSchema, 10000.0f, "AgentLocationObservation"));
 	AgentObservation.Add("Direction", ULearningAgentsObservations::SpecifyDirectionObservation(
 		InObservationSchema, "AgentDirectionObservation"));
 
@@ -64,9 +64,9 @@ void UAutonomousCarInteractor::SpecifyAgentObservation_Implementation(
 
 	// Define observation of own speed and RPMs (if manual transmission)
 	TMap<FName, FLearningAgentsObservationSchemaElement> SelfObservation;
-	SelfObservation.Add("Speed", ULearningAgentsObservations::SpecifyVelocityObservation(InObservationSchema));
+	SelfObservation.Add("Speed", ULearningAgentsObservations::SpecifyVelocityObservation(InObservationSchema, 200.0f));
 	if (bManualTransmission) {
-		SelfObservation.Add("RPM", ULearningAgentsObservations::SpecifyFloatObservation(InObservationSchema));
+		SelfObservation.Add("RPM", ULearningAgentsObservations::SpecifyFloatObservation(InObservationSchema, 200.0f));
 	}
 
 	const auto SelfObservations =
