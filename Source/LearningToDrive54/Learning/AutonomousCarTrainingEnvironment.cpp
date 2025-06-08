@@ -21,13 +21,13 @@ void UAutonomousCarTrainingEnvironment::GatherAgentReward_Implementation(float& 
 	// Get reference to agent and it's movement component
 	AResetableVehiclePawn* Agent = Cast<AResetableVehiclePawn>(Manager->GetAgent(AgentId, AWheeledVehiclePawn::StaticClass()));
 	if (Agent == nullptr) {
-		UE_LOG(LogTemp, Error, TEXT("TrainingEnv: Casting of agent failed."));
+		UE_LOG(LogTemp, Error, TEXT("TrainingEnvironment (22): Casting of agent failed."));
 		return;
 	}
 
 	const UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(Agent->GetVehicleMovementComponent());
 	if (VehicleMovement == nullptr) {
-		UE_LOG(LogTemp, Error, TEXT("TrainingEnv: Failed to Retrieve Vehicle Movement Component."))
+		UE_LOG(LogTemp, Error, TEXT("TrainingEnvironment (28): Failed to Retrieve Vehicle Movement Component."))
 		return;
 	}
 
@@ -59,7 +59,7 @@ void UAutonomousCarTrainingEnvironment::GatherAgentCompletion_Implementation(ELe
 	// Get reference to agent
 	const AResetableVehiclePawn* Agent = Cast<AResetableVehiclePawn>(Manager->GetAgent(AgentId, AResetableVehiclePawn::StaticClass()));
 	if (Agent == nullptr) {
-		UE_LOG(LogTemp, Error, TEXT("TrainingEnv: Casting of agent failed."));
+		UE_LOG(LogTemp, Error, TEXT("TrainingEnvironment (60): Casting of agent failed."));
 		return;
 	}
 
@@ -86,7 +86,7 @@ void UAutonomousCarTrainingEnvironment::ResetAgentEpisode_Implementation(const i
 	// Get reference to agent
 	AResetableVehiclePawn* Agent = Cast<AResetableVehiclePawn>(Manager->GetAgent(AgentId, AResetableVehiclePawn::StaticClass()));
 	if (Agent == nullptr) {
-		UE_LOG(LogTemp, Error, TEXT("TrainingEnv: Casting of agent failed."));
+		UE_LOG(LogTemp, Error, TEXT("TrainingEnvironment (87): Casting of agent failed."));
 		return;
 	}
 

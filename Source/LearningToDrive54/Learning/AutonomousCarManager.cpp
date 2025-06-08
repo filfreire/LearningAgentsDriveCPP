@@ -16,8 +16,6 @@
 AAutonomousCarManager::AAutonomousCarManager()
 {
 	LearningAgentsManager = CreateDefaultSubobject<UAutonomousCarManagerComponent>("Learning Agents Manager");
-
-	// TODO: Initialize neural network assets
 }
 
 void AAutonomousCarManager::BeginPlay()
@@ -57,10 +55,10 @@ void AAutonomousCarManager::InitializeAgents()
 
 void AAutonomousCarManager::InitializeManager()
 {
+	// Should neural networks be re-initialized
 	const bool ReInitialize = (RunMode == EManagerModeEnum::ReInitialize);
-	// const bool InferenceMode = (RunMode == EManagerModeEnum::InferenceMode);
-	// const bool ContinueTraining = (RunMode == EManagerModeEnum::ContinueTraining);
 
+	// Make Interactor Instance
 	Interactor = Cast<UAutonomousCarInteractor>(ULearningAgentsInteractor::MakeInteractor(
 		LearningAgentsManager, UAutonomousCarInteractor::StaticClass(), "Autonomous Car Interactor"));
 	if (Interactor == nullptr)
@@ -73,13 +71,14 @@ void AAutonomousCarManager::InitializeManager()
 
 	LearningAgentsInteractorBase = Interactor;
 
-	// warn if neural networks are not set
+	// Warn if neural networks are not set
 	if (EncoderNeuralNetwork == nullptr || PolicyNeuralNetwork == nullptr || DecoderNeuralNetwork == nullptr || CriticNeuralNetwork == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Autonomous Car Manager: One or more neural networks are not set."));
 		return;
 	}
 
+	// Make Policy Instance
 	Policy = ULearningAgentsPolicy::MakePolicy(
 		LearningAgentsManager,
 		LearningAgentsInteractorBase,
@@ -99,6 +98,7 @@ void AAutonomousCarManager::InitializeManager()
 		return;
 	}
 
+	// Make Critic Instance
 	Critic = ULearningAgentsCritic::MakeCritic(LearningAgentsManager, LearningAgentsInteractorBase, Policy,
 		ULearningAgentsCritic::StaticClass(), "Learning Agents Critic",
 		CriticNeuralNetwork, ReInitialize, CriticSettings, RandomSeed);
@@ -108,7 +108,7 @@ void AAutonomousCarManager::InitializeManager()
 		return;
 	}
 
-	// Create Training Environment
+	// Make Training Environment instance
 	TrainingEnvironment = Cast<UAutonomousCarTrainingEnvironment>(ULearningAgentsTrainingEnvironment::MakeTrainingEnvironment(
 		LearningAgentsManager, UAutonomousCarTrainingEnvironment::StaticClass(), "Autonomous Car Training Environment"));
 	if (TrainingEnvironment == nullptr)
@@ -126,6 +126,7 @@ void AAutonomousCarManager::InitializeManager()
 		TrainerProcessSettings, SharedMemorySettings
 	);
 
+	// Make PPO Trainer Instance
 	PPOTrainer = ULearningAgentsPPOTrainer::MakePPOTrainer(
 		LearningAgentsManager, LearningAgentsInteractorBase, TrainingEnvironmentBase, Policy, Critic,
 		Communicator, ULearningAgentsPPOTrainer::StaticClass(), "PPO Trainer", TrainerSettings);
@@ -151,7 +152,7 @@ void AAutonomousCarManager::Tick(float DeltaSeconds)
 	{
 		if (PPOTrainer != nullptr)
 		{
-			UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running PPO training step."));
+			UE_LOG(LogTemp, Log, TEXT("Autonomous Car Manager: Running PPO training."));
 			PPOTrainer->RunTraining(
 				TrainingSettings, TrainingGameSettings, true, true);
 		}

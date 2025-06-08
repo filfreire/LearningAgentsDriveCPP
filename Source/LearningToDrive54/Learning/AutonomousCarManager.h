@@ -92,7 +92,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Manager Settings")
 	int RandomSeed;
 
-	// Settings passed to the learning objects
 	UPROPERTY(EditAnywhere, Category = "Learning Settings")
 	FLearningAgentsPolicySettings PolicySettings;
 
